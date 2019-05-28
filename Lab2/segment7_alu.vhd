@@ -21,6 +21,7 @@ begin
 			"0000" & (OPIN1 AND OPIN2) when "0001",
 			"0000" & (OPIN1 OR  OPIN2) when "0010",
 			"0000" & (OPIN1 XOR OPIN2) when "0100",
+			"0000" & std_logic_vector(unsigned(OPIN1) + unsigned(OPIN2)) when "1000",
 			"00000000" 		 when others;
 
 end Architecture logical_operators;
