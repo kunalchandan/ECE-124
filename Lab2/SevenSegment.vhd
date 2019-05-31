@@ -9,7 +9,7 @@ use ieee.numeric_std.all;
 
 entity SevenSegment is port (
    
-   hex	   :  in  std_logic_vector(3 downto 0);   -- The 4 bit data to be displayed
+   bin	   :  in  std_logic_vector(3 downto 0);   -- The 4 bit data to be displayed
    
    sevenseg :  out std_logic_vector(6 downto 0)    -- 7-bit outputs to a 7-segment
 ); 
@@ -22,7 +22,7 @@ architecture Behavioral of SevenSegment is
 -- The segment turns on when it is '1' otherwise '0'
 --
 begin
-   with hex select						     --GFEDCBA        3210      -- data in   
+   with bin select						     --GFEDCBA        3210      -- data in   
 	sevenseg 				    <= "0111111" when "0000",    -- [0]
 										 "0000110" when "0001",    -- [1]
 										 "1011011" when "0010",    -- [2]      +---- a -----+

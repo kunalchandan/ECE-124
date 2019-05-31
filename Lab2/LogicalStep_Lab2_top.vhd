@@ -20,7 +20,7 @@ architecture SimpleCircuit of LogicalStep_Lab2_top is
 -- Components Used ---
 ------------------------------------------------------------------- 
   component SevenSegment port (
-   hex   		:  in  std_logic_vector(3 downto 0);   -- The 4 bit data to be displayed
+   bin   		:  in  std_logic_vector(3 downto 0);   -- The 4 bit data to be displayed
    sevenseg 	:  out std_logic_vector(6 downto 0)    -- 7-bit outputs to a 7-segment
    ); 
    end component;
@@ -40,8 +40,14 @@ architecture SimpleCircuit of LogicalStep_Lab2_top is
 	OPIN2		: in std_logic_vector(7 downto 4);
 	OPERATOR	: in std_logic_vector(3 downto 0);
 	LOUT		: out std_logic_vector(7 downto 0)
---	AOUTLed	: out std_logic_vector(7 downto 0);
---	AOUTSeg7	: out std_logic_vector(6 downto 0)
+	);
+	end component;
+	
+	component mux_adder port (
+	LEDS_IN	: in std_logic_vector(7 downto 0);
+	OPERATOR	: in std_logic_vector(3 downto 0);
+	BIN_A		: out std_logic_vector(7 downto 4);
+	BIN_B		: out std_logic_vector(3 downto 0)
 	);
 	end component;
 	
@@ -49,29 +55,43 @@ architecture SimpleCircuit of LogicalStep_Lab2_top is
 --
 --  std_logic_vector is a signal which can be used for logic operations such as OR, AND, NOT, XOR
 --
+
 	signal seg7_A		: std_logic_vector(6 downto 0);
-	signal hex_A		: std_logic_vector(3 downto 0);
 	signal seg7_B		: std_logic_vector(6 downto 0);
-	signal hex_B		: std_logic_vector(7 downto 4);
+	signal bin_A		: std_logic_vector(3 downto 0);
+	signal bin_B		: std_logic_vector(7 downto 4);
 	signal pb_bar		: std_logic_vector(3 downto 0);
+	signal leds_in		: std_logic_vector(7 downto 0);
+	
 	--signal Led_OUT		: std_logic_vector(7 downto 0);
 	
 -- Here the circuit begins
 
 begin
 	
-	-- the two digits
-	hex_A <= sw(3 downto 0);
-	hex_B <= sw(7 downto 4);
+	-- the two digits in binary (4-bit)
+	bin_A <= sw(3 downto 0);
+	bin_B <= sw(7 downto 4);
 	-- invert push buttons
 	pb_bar <= NOT(pb);
 	
+	leds_in <= leds(7 downto 0);
+	
 	
 -- Instances (Component)
-	INST1: SevenSegment port map (hex_A, seg7_A);
-	INST2: SevenSegment port map (hex_B, seg7_B);
-	INST3: segment7_mux port map(clkin_50, seg7_A, seg7_B, seg7_data, seg7_char2, seg7_char1); 
-	INST4: segment7_alu port map (hex_A, hex_B, pb_bar, leds);
+
+-- Both binary numbers, operator, LED array
+	INST4: segment7_alu port map (bin_A, bin_B, pb_bar, leds);
+	
+-- TODO: Add a layer (mux_compnent) that takes in LEDS and returns both 4-bit digits
+	INST0: mux_adder port map (leds_in, pb_bar, bin_A, bin_B); 
+	
+-- Bin to hex
+	INST1: SevenSegment port map (bin_A, seg7_A);
+	INST2: SevenSegment port map (bin_B, seg7_B);
+	
+-- Interprets and creates the numbers on sevenseg-display.
+	INST3: segment7_mux port map(clkin_50, seg7_A, seg7_B, seg7_data, seg7_char2, seg7_char1);
 
  
 end SimpleCircuit;
