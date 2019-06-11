@@ -15,22 +15,35 @@ entity LogicalStep_Lab3_top is port (
 ); 
 end LogicalStep_Lab3_top;
 
--- Multi-comparator component
 
 architecture Energy_Monitor of LogicalStep_Lab3_top is
 --
 -- Components Used
 ------------------------------------------------------------------- 
 
+	component multi_comparator is PORT (		
+			sw   		: in  std_logic_vector(7 downto 0); -- The switch inputs
+			A_GT_B	: out std_logic;
+			A_EQ_B	: out std_logic;	
+			A_LT_B	: out std_logic	
+	);
+	end component;
 ------------------------------------------------------------------
 	
 	
 -- Create any signals, or temporary variables to be used
+	signal switches : std_logic_vector(7 downto 0);
+	signal GT       : std_logic;
+	signal EQ       : std_logic;
+	signal LT       : std_logic;
 	
 	
 -- Here the circuit begins
 
 begin
+
+	comp : multi_comparator port map (switches, GT, EQ, LT);
+	
  
 end Energy_Monitor;
 
