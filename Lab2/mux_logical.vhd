@@ -4,7 +4,7 @@ use ieee.numeric_std.all;
 
 entity mux_logical is
 	
-	-- Takes in two 4-bit values, operator (adder), outputs 1 8-bit value for LEDs.
+	-- Takes in two 4-bit values, operator (adder), outputs 1 8-bit value for LEDs based on the Button values.
 	PORT
 	(		
 		bin_A		: in std_logic_vector(3 downto 0);
