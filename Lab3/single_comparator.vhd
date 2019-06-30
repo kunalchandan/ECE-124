@@ -22,7 +22,7 @@ begin
 	
 	-- Logical Outputs for Greater than, less than and equal to
 	A_GT_B <= bin_A AND (NOT bin_B);
-	A_EQ_B <= bin_A XOR bin_B;
+	A_EQ_B <= bin_A XNOR bin_B;
 	A_LT_B <= (NOT bin_A) AND bin_B;
 
 	
