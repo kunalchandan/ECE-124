@@ -17,7 +17,12 @@ Entity mealy_state_machine IS Port
  x_current                 : in std_logic_vector(3 downto 0);
  y_current                 : in std_logic_vector(3 downto 0);
  
- clk_en, x_move, y_move    : out std_logic
+ extender_en               : out std_logic;
+ x_move_en                 : out std_logic;
+ y_move_en                 : out std_logic;
+ x_clk_en                  : out std_logic;
+ y_clk_en                  : out std_logic;
+ error_led                 : out std_logic
  );
 END ENTITY;
  
