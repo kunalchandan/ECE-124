@@ -7,7 +7,8 @@ entity multi_comparator is
 	-- Takes in four single-bit comparators and outputs the final value of A>B, A=B or A<B
 	PORT
 	(		
-		switches   		: in  std_logic_vector(7 downto 0); -- The switch inputs
+		switches   		: in  std_logic_vector(3 downto 0); -- The switch inputs
+		current			: in 	std_logic_vector(3 downto 0); -- Either x or y positions
 		A_GT_B			: out std_logic;
 		A_EQ_B			: out std_logic;	
 		A_LT_B			: out std_logic	
@@ -50,8 +51,8 @@ Architecture multi_bit_operator of multi_comparator is
 
 begin
 	-- Convert inputs to signals
-	NUM_A <= switches(7 downto 4);
-	NUM_B <= switches(3 downto 0);
+	NUM_A <= switches(3 downto 0);
+	NUM_B <= current(3 downto 0);
 	
 	-- 	  single_comparator(in1,      in2,      A>B,      A=B,      A<B) (x4)
 	SC3	: single_comparator port map (NUM_A(3), NUM_B(3), A3_GT_B3, A3_EQ_B3, A3_LT_B3);
