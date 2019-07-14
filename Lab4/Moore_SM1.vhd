@@ -24,7 +24,7 @@ BEGIN
 
 -- STATE MACHINE: MOORE Type
 
-REGISTER_SECTION: PROCESS(CLK, RESET_n) -- creates sequential logic to store the state. The rst_n is used to asynchronously clear the register
+REGISTER_SECTION: PROCESS(CLK, RESET_n, next_state) -- creates sequential logic to store the state. The rst_n is used to asynchronously clear the register
 BEGIN
     IF (RESET_n = '0') THEN
         current_state <= INIT;
@@ -34,7 +34,7 @@ BEGIN
 END PROCESS;
     
 
- TRANSITION_LOGIC: PROCESS(EXTEND_EN, EXTEND_BTN, current_state) -- logic to determine next state. 
+TRANSITION_LOGIC: PROCESS(EXTEND_EN, EXTEND_BTN, current_state) -- logic to determine next state. 
 BEGIN
     CASE current_state IS
         -- Initial state, if EXTEND_EN, begin opening
@@ -48,7 +48,7 @@ BEGIN
         -- Retracted state, if EXTEND_EN, begin opening
         WHEN RETRACTED =>        
             IF ((EXTEND_EN='1') AND (EXTEND_BTN='1')) THEN 
-                    next_state <= FW_EXTENDING_1;
+                next_state <= FW_EXTENDING_1;
             ELSE
                 next_state <= RETRACTED;
             END IF;

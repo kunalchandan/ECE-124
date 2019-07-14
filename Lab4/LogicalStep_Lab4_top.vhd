@@ -88,19 +88,23 @@ end component;
     signal t_ex       : std_logic;
     signal t_gr       : std_logic;    
     
-    signal X_ET            : std_logic;
-    signal X_GT            : std_logic;
-    signal X_LT            : std_logic;
-    signal x_clk        : std_logic;
+    signal X_ET       : std_logic;
+    signal X_GT       : std_logic;
+    signal X_LT       : std_logic;
+    signal x_clk      : std_logic;
     
-    signal Y_EQ            : std_logic;
-    signal Y_GT            : std_logic;
-    signal Y_LT            : std_logic;
-    signal y_clk        : std_logic;
+    signal Y_EQ       : std_logic;
+    signal Y_GT       : std_logic;
+    signal Y_LT       : std_logic;
+    signal y_clk      : std_logic;
     
-    signal ext_out        : std_logic;
-    signal ext_en        : std_logic;
+    signal ext_out    : std_logic;
+    signal ext_en     : std_logic;
     
+    signal x_led      : std_logic_vector(3 downto 0);
+    signal y_led      : std_logic_vector(3 downto 0);
+    signal seg7_A     : std_logic_vector(6 downto 0);
+    signal seg7_B     : std_logic_vector(6 downto 0);
 
     
 ----------------------------------------------------------------------------------------------------
@@ -129,6 +133,16 @@ BEGIN
     X_COMPX4: multi_comparator port map (x_target, x_cur, X_GT, X_EQ, X_LT);
     Y_COMPX4: multi_comparator port map (y_target, y_cur, Y_GT, Y_EQ, Y_LT);
 
+
+    -- Display MUXs
+    DECIDER: display_driver port map (x_target, x_cur, x_en_btn, err_led, x_led);
+    DECIDER: display_driver port map (y_target, y_cur, y_en_btn, err_led, y_led);
+    
+    MAP_A: SevenSegment port map (x_led, seg7_A);
+    MAP_B: SevenSegment port map (y_led, seg7_B);
+
+    DECODER: segment7_mux port map (clkin_50, seg7_A, seg7_B, seg7_data, seg7_char1, seg7_char2);
+
 -- PROCESSES
 -- CLOCKING GENERATOR WHICH DIVIDES THE INPUT CLOCK DOWN TO A LOWER FREQUENCY
     BinCLK: PROCESS(clkin_50, rst_n) is
@@ -140,7 +154,7 @@ BEGIN
 
     Clock_Source:
                 Main_Clk <= 
-                clkin_50 when sim = TRUE else                -- for simulations only
+                clkin_50 when sim = TRUE else              -- for simulations only
                 std_logic(bin_counter(23));                -- for real FPGA operation
                 
   -- SHIFTER: Bidir_shift_reg port map (Main_Clk, rst_n, pb(1), pb(0), leds);
