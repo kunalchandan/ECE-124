@@ -8,16 +8,16 @@ entity display_driver is port (
     curren    : in  std_logic_vector(3 downto 0);
     enable    : in  std_logic;
     error     : in  std_logic;
-    seg_7     : out std_logic
+    seg_7     : out std_logic_vector(3 downto 0)
 );
 end display_driver;
 
 architecture DISPLAY of display_driver is
 
 begin
-    with std_logic_vector(enable & error) select
-               seg_7 <= target when "00",
-                        curren when "10",
-                        "1111" when others;
+    with enable select
+                seg_7 <= target when '0',
+                         curren when others;
+    
 
 end architecture DISPLAY;

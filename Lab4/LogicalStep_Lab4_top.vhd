@@ -9,16 +9,16 @@ ENTITY LogicalStep_Lab4_top IS
     rst_n       : in  std_logic;
     pb          : in  std_logic_vector(3 downto 0);
     sw          : in  std_logic_vector(7 downto 0); -- The switch inputs
-    leds        : out std_logic_vector(7 downto 0);    -- for displaying the switch content
+    leds        : out std_logic_vector(7 downto 0); -- for displaying the switch content
     seg7_data   : out std_logic_vector(6 downto 0); -- 7-bit outputs to a 7-segment
-    seg7_char1  : out std_logic;                            -- seg7 digi selectors
-    seg7_char2  : out std_logic                            -- seg7 digi selectors
+    seg7_char1  : out std_logic;                    -- seg7 digi selectors
+    seg7_char2  : out std_logic                     -- seg7 digi selectors
     );
 END LogicalStep_Lab4_top;
 
 ARCHITECTURE SimpleCircuit OF LogicalStep_Lab4_top IS
 
-  -- COMPONENT DECLARATIONS
+---------------------------- COMPONENT DECLARATIONS --------------------------------
   component Bidir_shift_reg is port (
     CLK          : in  std_logic := '0';
     RESET_n      : in  std_logic := '0';
@@ -60,7 +60,45 @@ end component;
     error_led                 : out std_logic
  );
   end component;
-    
+  
+  
+  component segment7_mux is port (
+    clk          : in  std_logic := '0';
+    DIN2         : in  std_logic_vector(6 downto 0);    
+    DIN1         : in  std_logic_vector(6 downto 0);
+    DOUT         : out std_logic_vector(6 downto 0);
+    DIG2         : out std_logic;
+    DIG1         : out std_logic
+);
+end component;
+
+component SevenSegment is port (
+
+   err_led  :  in  std_logic;
+   clock    :  in  std_logic;
+   bin      :  in  std_logic_vector(3 downto 0);   -- The 4 bit data to be displayed
+   
+   sevenseg :  out std_logic_vector(6 downto 0)    -- 7-bit outputs to a 7-segment
+); 
+end component;
+
+component display_driver is port (
+    target    : in  std_logic_vector(3 downto 0);
+    curren    : in  std_logic_vector(3 downto 0);
+    enable    : in  std_logic;
+    error     : in  std_logic;
+    seg_7     : out std_logic_vector(3 downto 0)
+);
+end component;
+
+component MOORE_SM2 is port (
+   CLK                : in  std_logic := '0';
+   RESET_n            : in  std_logic := '0';
+   GRAP_BUTTON        : in  std_logic := '0';
+   GRAP_ENBL          : in  std_logic := '0';
+   GRAP_ON            : out std_logic
+);
+end component;
 ----------------------------------------------------------------------------------------------------
     CONSTANT sim                : boolean := TRUE;     -- set to TRUE for simulation runs otherwise keep at 0.
     CONSTANT CLK_DIV_SIZE       : integer := 26;    -- size of vectors for the counters
@@ -124,7 +162,7 @@ BEGIN
     y_cur <= "0000";
      
      
-     --MEALY_SM: mealy_state_machine port map (Main_Clk, rst_n, ext_out, x_en, y_en, x_target, y_target, x_cur, y_cur, X_EQ, X_GT, X_LT, Y_EQ, Y_GT, Y_LT, ext_en, x_move_en, y_move_en, x_clk, y_clk, err_led);
+    --MEALY_SM: mealy_state_machine port map (Main_Clk, rst_n, ext_out, x_en, y_en, x_target, y_target, x_cur, y_cur, X_EQ, X_GT, X_LT, Y_EQ, Y_GT, Y_LT, ext_en, x_move_en, y_move_en, x_clk, y_clk, err_led);
     MEALY_SM_V2 : mealy_state_machine port map (Main_Clk, rst_n, ext_out, x_en_btn, y_en_btn, X_EQ, X_GT, X_LT, Y_EQ, Y_GT, Y_LT, ext_en, x_move_en, y_move_en, x_clk, y_clk, err_led);
      
     X_UD_COUNTER: U_D_Bin_Counter4bit port map (Main_Clk, rst_n, x_clk, x_move_en, x_cur);
@@ -138,11 +176,12 @@ BEGIN
     DECIDER: display_driver port map (x_target, x_cur, x_en_btn, err_led, x_led);
     DECIDER: display_driver port map (y_target, y_cur, y_en_btn, err_led, y_led);
     
-    MAP_A: SevenSegment port map (x_led, seg7_A);
-    MAP_B: SevenSegment port map (y_led, seg7_B);
+    MAP_A: SevenSegment port map (err_led, Main_Clk, x_led, seg7_A);
+    MAP_B: SevenSegment port map (err_led, Main_Clk, y_led, seg7_B);
 
     DECODER: segment7_mux port map (clkin_50, seg7_A, seg7_B, seg7_data, seg7_char1, seg7_char2);
-
+    
+    leds(0) = err_led;
 -- PROCESSES
 -- CLOCKING GENERATOR WHICH DIVIDES THE INPUT CLOCK DOWN TO A LOWER FREQUENCY
     BinCLK: PROCESS(clkin_50, rst_n) is
