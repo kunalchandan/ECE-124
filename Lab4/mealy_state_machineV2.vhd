@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 -- MEALY State machine
-Entity mealy_state_machine IS Port
+Entity mealy_state_machineV2 IS Port
 (
     clk_input, rst_n          : in std_logic;
     extender_out              : in std_logic; -- This is a state, since it is a toggle button
@@ -12,7 +12,7 @@ Entity mealy_state_machine IS Port
     y_drive_en                : in std_logic; -- Pb(2)
 
     X_EQ, X_GT, X_LT                : in std_logic; -- Inputs from multi-comparator for X
-    Y_EQ, Y_GT, Y_KT                : in std_logic; -- Inputs from multi-comparator for y
+    Y_EQ, Y_GT, Y_LT                : in std_logic; -- Inputs from multi-comparator for y
 
     extender_en               : out std_logic; 
     x_move_en                 : out std_logic; -- if the clock is on, 1 is increment, 0 is decrement x
@@ -24,11 +24,11 @@ Entity mealy_state_machine IS Port
 END ENTITY;
  
 
-Architecture SM of mealy_state_machine is
+Architecture SM of mealy_state_machineV2 is
  
  
  -- Set of all possible states
-    TYPE STATE_NAMES IS (idle, x_moving, y_moving, xy_moving, error);
+    TYPE STATE_NAMES IS (idle, x_moving, y_moving, xy_moving, err);
  
     SIGNAL current_state, next_state    :  STATE_NAMES;         -- signals of type STATE_NAMES
 
@@ -65,7 +65,7 @@ BEGIN
                 
                 -- If extender is out, current position is not desired position and the drives are enabled -> error
                 IF((extender_out='1') and ((x_drive_en ='1' and X_EQ='0') or (y_drive_en ='1' and Y_EQ='0'))) THEN
-                    next_state <= error;
+                    next_state <= err;
                 
                 -- If extender is retracted:
                 ELSIF(extender_out='0') THEN
@@ -80,7 +80,7 @@ BEGIN
                         
                     -- current_y != desired_y and y_drive is enabled -> y_moving
                     ELSIF(y_drive_en ='1' and Y_EQ='0') THEN
-                        next_state <= y_moving
+                        next_state <= y_moving;
                     
                     -- go into idle (retracted arm)
                     ELSE
@@ -111,7 +111,7 @@ BEGIN
                         next_state <= y_moving;
                         
                     -- If X reaches its target and btns are held -> y_moving
-                    ELSIF((X_EQ='1') and (y_drive_en ='1' and Y_EQ='0') THEN
+                    ELSIF((X_EQ='1') and (y_drive_en ='1' and Y_EQ='0')) THEN
                         next_state <= y_moving;    
                         
                     -- If we release the Y-drive -> x_moving
@@ -190,7 +190,7 @@ BEGIN
                     
                 -- if btn(s) are held -> error    
                 ELSE
-                    next_state <= error;
+                    next_state <= err;
                     
                 END IF;
                  
@@ -200,7 +200,7 @@ BEGIN
 
 -- DECODER SECTION PROCESS (Moore Form) CHANGE TO MEALY -- 
 
-Decoder_Section: PROCESS (X_EQ, X_GT, X_LT, Y_EQ, Y_GT, Y_KT, current_state) 
+Decoder_Section: PROCESS (X_EQ, X_GT, X_LT, Y_EQ, Y_GT, Y_LT, current_state) 
 
 BEGIN
      CASE current_state IS
@@ -218,23 +218,27 @@ BEGIN
                 -- We have to define behaviour for each outcome or else we get latches
                 IF(X_GT='1') THEN
                     x_move_en <= '0';
+                    x_clk_en  <= '1';
                 ELSIF(X_LT='1') THEN
                     x_move_en <= '1';
+                    x_clk_en  <= '1';
                 ELSE
-                    x_move_en <= '-'; -- this value is arbitrary, but must be set    
+                    x_move_en <= '-'; -- this value is arbitrary, but must be set 
+                    x_clk_en  <= '0';   
                 END IF;
                 
                 -- We have to define behaviour for each outcome or else we get latches
                 IF(Y_GT='1') THEN
-                    y_move_en   <= '0';
-                ELSIF(Y_LT='1') THEN
+                    y_move_en <= '0';
+                    y_clk_en  <= '1';
+                ELSIF(X_LT='1') THEN
                     y_move_en <= '1';
+                    y_clk_en  <= '1';
                 ELSE
-                    y_move_en <= '-'; -- this value is arbitrary, but must be set    
+                    y_move_en <= '-'; -- this value is arbitrary, but must be set 
+                    y_clk_en  <= '0';   
                 END IF;
-                
-                x_clk_en    <= '1'; -- Counter is enabled X
-                y_clk_en    <= '1'; -- Counter is enabled Y
+
                 error_led   <= '0';
         
             WHEN x_moving =>
@@ -243,14 +247,16 @@ BEGIN
                 -- We have to define behaviour for each outcome or else we get latches
                 IF(X_GT='1') THEN
                     x_move_en <= '0';
+                    x_clk_en  <= '1';
                 ELSIF(X_LT='1') THEN
                     x_move_en <= '1';
+                    x_clk_en  <= '1';
                 ELSE
-                    x_move_en <= '-'; -- this value is arbitrary, but must be set    
+                    x_move_en <= '-'; -- this value is arbitrary, but must be set 
+                    x_clk_en  <= '0';   
                 END IF;
                 
                 y_move_en   <= '0';
-                x_clk_en    <= '1'; -- Counter is enabled X
                 y_clk_en    <= '0';
                 error_led   <= '0';
             
@@ -261,14 +267,16 @@ BEGIN
                 -- We have to define behaviour for each outcome or else we get latches
                 IF(Y_GT='1') THEN
                     y_move_en <= '0';
+                    y_clk_en  <= '1';
                 ELSIF(Y_LT='1') THEN
                     y_move_en <= '1';
+                    y_clk_en  <= '1';
                 ELSE
-                    y_move_en <= '-'; -- this value is arbitrary, but must be set    
+                    y_move_en <= '-'; -- this value is arbitrary, but must be set  
+                    y_clk_en  <= '0';  
                 END IF;
                 
                 x_clk_en    <= '0';
-                y_clk_en    <= '1'; -- Counter is enabled Y
                 error_led   <= '0';
                 
             -- when in Error state

@@ -37,27 +37,22 @@ end component;
 );
 end component;
   
-  component mealy_state_machine IS Port (
+  component mealy_state_machineV2 IS Port (
     clk_input, rst_n          : in std_logic;
     extender_out              : in std_logic; -- This is a state, since it is a toggle button
-     
-    x_drive_en                : in std_logic;
-    y_drive_en                : in std_logic;
-    
-    x_target                  : in std_logic_vector(3 downto 0);
-    y_target                  : in std_logic_vector(3 downto 0);
-     
-    x_current                 : in std_logic_vector(3 downto 0);
-    y_current                 : in std_logic_vector(3 downto 0);
-    
-    X_EQ, X_GT, X_LT          : in std_logic; -- Inputs from multi-comparator for X
-    Y_EQ, Y_GT, Y_KT          : in std_logic; -- Inputs from multi-comparator for y     
-    extender_en               : out std_logic;
-    x_move_en                 : out std_logic;
-    y_move_en                 : out std_logic;
-    x_clk_en                  : out std_logic;
-    y_clk_en                  : out std_logic;
-    error_led                 : out std_logic
+ 
+    x_drive_en                : in std_logic; -- Pb(3)
+    y_drive_en                : in std_logic; -- Pb(2)
+
+    X_EQ, X_GT, X_LT                : in std_logic; -- Inputs from multi-comparator for X
+    Y_EQ, Y_GT, Y_LT                : in std_logic; -- Inputs from multi-comparator for y
+
+    extender_en               : out std_logic; 
+    x_move_en                 : out std_logic; -- if the clock is on, 1 is increment, 0 is decrement x
+    y_move_en                 : out std_logic; -- if the clock is on, 1 is increment, 0 is decrement y
+    x_clk_en                  : out std_logic; -- enables 4bit counter for X-drive
+    y_clk_en                  : out std_logic; -- enables 4bit counter for Y-drive
+    error_led                 : out std_logic  -- LED 0
  );
   end component;
   
@@ -86,7 +81,6 @@ component display_driver is port (
     target    : in  std_logic_vector(3 downto 0);
     curren    : in  std_logic_vector(3 downto 0);
     enable    : in  std_logic;
-    error     : in  std_logic;
     seg_7     : out std_logic_vector(3 downto 0)
 );
 end component;
@@ -99,13 +93,39 @@ component MOORE_SM2 is port (
    GRAP_ON            : out std_logic
 );
 end component;
+
+
+component MOORE_SM1 is port (
+    CLK                  : in  std_logic := '0';
+    RESET_n              : in  std_logic := '0';
+    EXTEND_BTN           : in  std_logic := '0';
+    EXTEND_EN            : in  std_logic := '0';
+    EXTEND_OUT           : out std_logic;
+    GRAPPLE_EN           : out std_logic;
+    CLOCK_ENBL           : out std_logic;
+    LEFT_RIGHT           : out std_logic
+
+);
+end component;
+
+component multi_comparator is
+    -- Takes in four single-bit comparators and outputs the final value of A>B, A=B or A<B
+    PORT
+    (        
+        switches          : in  std_logic_vector(3 downto 0); -- The switch inputs
+        current           : in  std_logic_vector(3 downto 0); -- Either x or y positions
+        A_GT_B            : out std_logic;
+        A_EQ_B            : out std_logic;
+        A_LT_B            : out std_logic
+    );
+end component;
 ----------------------------------------------------------------------------------------------------
-    CONSTANT sim                : boolean := TRUE;     -- set to TRUE for simulation runs otherwise keep at 0.
+    CONSTANT sim                : boolean := FALSE;     -- set to TRUE for simulation runs otherwise keep at 0.
     CONSTANT CLK_DIV_SIZE       : integer := 26;    -- size of vectors for the counters
 
     SIGNAL   Main_CLK           : std_logic;             -- main clock to drive sequencing of State Machine
 
-    SIGNAL   bin_counter        : unsigned(CLK_DIV_SIZE 1 downto 0); -- := to_unsigned(0,CLK_DIV_SIZE); -- reset binary counter to zero
+    SIGNAL   bin_counter        : unsigned(CLK_DIV_SIZE-1 downto 0); -- := to_unsigned(0,CLK_DIV_SIZE); -- reset binary counter to zero
     
     
 --------------- GENERAL INPUT SIGNALS ---------------------
@@ -115,30 +135,38 @@ end component;
     signal y_target   : std_logic_vector(3 downto 0);
     
     -- Initial X and Y position
-    signal x_current   : std_logic_vector(3 downto 0);
-    signal y_current   : std_logic_vector(3 downto 0);
+    signal x_cur   : std_logic_vector(3 downto 0) := "1000";
+    signal y_cur   : std_logic_vector(3 downto 0) := "1000";
     
     -- Enable signals for x or y drive
-    signal x_en_btn   : std_logic;
-    signal y_en_btn   : std_logic;
+    signal x_drive_en : std_logic;
+    signal y_drive_en : std_logic;
+    signal x_move_en  : std_logic;
+    signal y_move_en  : std_logic;
     
     -- Toggle buttons for extender or grappler
     signal t_ex       : std_logic;
     signal t_gr       : std_logic;    
     
-    signal X_ET       : std_logic;
+    signal X_EQ       : std_logic;
     signal X_GT       : std_logic;
     signal X_LT       : std_logic;
-    signal x_clk      : std_logic;
+    signal x_clk_en   : std_logic;
     
     signal Y_EQ       : std_logic;
     signal Y_GT       : std_logic;
     signal Y_LT       : std_logic;
-    signal y_clk      : std_logic;
+    signal y_clk_en   : std_logic;
     
-    signal ext_out    : std_logic;
-    signal ext_en     : std_logic;
-    
+    signal extender_out    : std_logic;
+    signal extender_en     : std_logic;
+
+    signal grp_out         : std_logic;
+    signal grp_en          : std_logic;
+    signal Shift_clk_en    : std_logic;
+    signal Shift_LeftRight : std_logic;
+
+    signal error_led  : std_logic;
     signal x_led      : std_logic_vector(3 downto 0);
     signal y_led      : std_logic_vector(3 downto 0);
     signal seg7_A     : std_logic_vector(6 downto 0);
@@ -152,36 +180,40 @@ BEGIN
     x_target <= sw(7 downto 4);
     y_target <= sw(3 downto 0);
      
-    x_en_btn <= pb(3);
-    y_en_btn <= pb(2);
+    x_drive_en <= not(pb(3));
+    y_drive_en <= not(pb(2));
     
-    t_ex <= pb(1);
-    t_gr <= pb(1);
+    t_ex <= not(pb(1));
+    t_gr <= not(pb(0));
+      
+    X_COMPX4: multi_comparator port map (x_cur, x_target, X_GT, X_EQ, X_LT);
+    Y_COMPX4: multi_comparator port map (y_cur, y_target, Y_GT, Y_EQ, Y_LT);
 
-    x_cur <= "0000";
-    y_cur <= "0000";
-     
-     
     --MEALY_SM: mealy_state_machine port map (Main_Clk, rst_n, ext_out, x_en, y_en, x_target, y_target, x_cur, y_cur, X_EQ, X_GT, X_LT, Y_EQ, Y_GT, Y_LT, ext_en, x_move_en, y_move_en, x_clk, y_clk, err_led);
-    MEALY_SM_V2 : mealy_state_machine port map (Main_Clk, rst_n, ext_out, x_en_btn, y_en_btn, X_EQ, X_GT, X_LT, Y_EQ, Y_GT, Y_LT, ext_en, x_move_en, y_move_en, x_clk, y_clk, err_led);
-     
-    X_UD_COUNTER: U_D_Bin_Counter4bit port map (Main_Clk, rst_n, x_clk, x_move_en, x_cur);
-    Y_UD_COUNTER: U_D_Bin_Counter4bit port map (Main_Clk, rst_n, y_clk, y_move_en, y_cur);
-     
-    X_COMPX4: multi_comparator port map (x_target, x_cur, X_GT, X_EQ, X_LT);
-    Y_COMPX4: multi_comparator port map (y_target, y_cur, Y_GT, Y_EQ, Y_LT);
+    MEALY_SM_V2 : mealy_state_machineV2 port map (Main_Clk, rst_n, extender_out, x_drive_en, y_drive_en, X_EQ, X_GT, X_LT, Y_EQ, Y_GT, Y_LT, 
+                                                    extender_en, x_move_en, y_move_en, x_clk_en, y_clk_en, error_led);
+
+    MOORE_SM_1  : MOORE_SM1 port map (Main_Clk, rst_n, t_ex, extender_en, extender_out, grp_en, Shift_clk_en, Shift_LeftRight);
+    MOORE_SM_2  : MOORE_SM2 port map (Main_Clk, rst_n, t_gr, grp_en, grp_out);
+
+    SHIFTER: Bidir_shift_reg port map (Main_Clk, rst_n, Shift_clk_en, Shift_LeftRight, leds(7 downto 4));
+
+    X_UD_COUNTER: U_D_Bin_Counter4bit port map (Main_Clk, rst_n, x_clk_en, x_move_en, x_cur);
+    Y_UD_COUNTER: U_D_Bin_Counter4bit port map (Main_Clk, rst_n, y_clk_en, y_move_en, y_cur);
 
 
     -- Display MUXs
-    DECIDER: display_driver port map (x_target, x_cur, x_en_btn, err_led, x_led);
-    DECIDER: display_driver port map (y_target, y_cur, y_en_btn, err_led, y_led);
+    X_DECIDER: display_driver port map (x_target, x_cur, x_drive_en, x_led);
+    Y_DECIDER: display_driver port map (y_target, y_cur, y_drive_en, y_led);
     
-    MAP_A: SevenSegment port map (err_led, Main_Clk, x_led, seg7_A);
-    MAP_B: SevenSegment port map (err_led, Main_Clk, y_led, seg7_B);
+    MAP_A: SevenSegment port map (error_led, Main_Clk, x_led, seg7_A);
+    MAP_B: SevenSegment port map (error_led, Main_Clk, y_led, seg7_B);
 
     DECODER: segment7_mux port map (clkin_50, seg7_A, seg7_B, seg7_data, seg7_char1, seg7_char2);
     
-    leds(0) = err_led;
+    leds(2) <= extender_out;
+    leds(1) <= grp_out;
+    leds(0) <= error_led;
 -- PROCESSES
 -- CLOCKING GENERATOR WHICH DIVIDES THE INPUT CLOCK DOWN TO A LOWER FREQUENCY
     BinCLK: PROCESS(clkin_50, rst_n) is

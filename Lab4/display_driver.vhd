@@ -7,7 +7,6 @@ entity display_driver is port (
     target    : in  std_logic_vector(3 downto 0);
     curren    : in  std_logic_vector(3 downto 0);
     enable    : in  std_logic;
-    error     : in  std_logic;
     seg_7     : out std_logic_vector(3 downto 0)
 );
 end display_driver;

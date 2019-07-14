@@ -19,31 +19,30 @@ end SevenSegment;
 
 architecture Behavioral of SevenSegment is
    signal zero   : std_logic;
-   signal interm : std_logic_vector(6 downto 0);
 -- 
 -- The following statements convert a 4-bit input, called dataIn to a pattern of 7 bits
 -- The segment turns on when it is '1' otherwise '0'
 --
 begin
-   zero <= not(err_led and clock);
-   with bin select        --           GFEDCBA        3210      -- data in   
-                            interm <= "0111111" when "0000",    -- [0]
-                                      "0000110" when "0001",    -- [1]
-                                      "1011011" when "0010",    -- [2]      +---- a -----+
-                                      "1001111" when "0011",    -- [3]      |            |
-                                      "1100110" when "0100",    -- [4]      |            |
-                                      "1101101" when "0101",    -- [5]      f            b
-                                      "1111101" when "0110",    -- [6]      |            |
-                                      "0000111" when "0111",    -- [7]      |            |
-                                      "1111111" when "1000",    -- [8]      +---- g -----+
-                                      "1101111" when "1001",    -- [9]      |            |
-                                      "1110111" when "1010",    -- [A]      |            |
-                                      "1111100" when "1011",    -- [b]      e            c
-                                      "1011000" when "1100",    -- [c]      |            |
-                                      "1011110" when "1101",    -- [d]      |            |
-                                      "1111001" when "1110",    -- [E]      +---- d -----+
-                                      "1110001" when "1111",    -- [F]
-                                      "0000000" when others;    -- [ ]
-   sevenseg <= AND zero;
+   zero <= err_led and clock;
+   -- Additional zero prepended to bin vector to identify when the sevenseg display should be cleared
+   with zero & bin select --           GFEDCBA        Z3210      -- data in   
+                          sevenseg <= "0111111" when "00000",    -- [0]
+                                      "0000110" when "00001",    -- [1]
+                                      "1011011" when "00010",    -- [2]      +---- a -----+
+                                      "1001111" when "00011",    -- [3]      |            |
+                                      "1100110" when "00100",    -- [4]      |            |
+                                      "1101101" when "00101",    -- [5]      f            b
+                                      "1111101" when "00110",    -- [6]      |            |
+                                      "0000111" when "00111",    -- [7]      |            |
+                                      "1111111" when "01000",    -- [8]      +---- g -----+
+                                      "1101111" when "01001",    -- [9]      |            |
+                                      "1110111" when "01010",    -- [A]      |            |
+                                      "1111100" when "01011",    -- [b]      e            c
+                                      "1011000" when "01100",    -- [c]      |            |
+                                      "1011110" when "01101",    -- [d]      |            |
+                                      "1111001" when "01110",    -- [E]      +---- d -----+
+                                      "1110001" when "01111",    -- [F]
+                                      "0000000" when  others;    -- [ ]
 end architecture Behavioral;
 ----------------------------------------------------------------------

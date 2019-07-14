@@ -2,19 +2,22 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
-ENTITY MOORE_SM2 IS PORT (
+ENTITY MOORE_SM1 IS PORT (
     CLK                  : in  std_logic := '0';
     RESET_n              : in  std_logic := '0';
     EXTEND_BTN           : in  std_logic := '0';
     EXTEND_EN            : in  std_logic := '0';
-    GRAP_ON              : out std_logic
+    EXTEND_OUT           : out std_logic;
+    GRAPPLE_EN           : out std_logic;
+    CLOCK_ENBL           : out std_logic;
+    LEFT_RIGHT           : out std_logic
 );
 END ENTITY;
 
-ARCHITECTURE SM OF MOORE_SM2 IS
+ARCHITECTURE SM OF MOORE_SM1 IS
 
 -- list all the STATES  
-   TYPE STATES IS (INIT, RETRACTED, FW_EXTENDING_1, FW_EXTENDING_2, FW_EXTENDING_3, BW_EXTENDING_1, BW_EXTENDING_2, BW_EXTENDING_3, FULL_EXTEND);
+   TYPE STATES IS (INIT, RETRACTED, FW_EXTENDING_1, FW_EXTENDING_2, FW_EXTENDING_3, FW_EXTENDING_4, BW_EXTENDING_1, BW_EXTENDING_2, BW_EXTENDING_3, BW_EXTENDING_4, FULL_EXTEND);
 
    SIGNAL current_state, next_state            :  STATES;       -- current_state, next_state signals are of type STATES
 -- SIGNAL OPEN1_CLOSE0    : std_logic;
@@ -61,7 +64,10 @@ BEGIN
             next_state <= FW_EXTENDING_3;
                 
         WHEN FW_EXTENDING_3 =>
-            next_state <= FULL_EXTEND;
+            next_state <= FW_EXTENDING_4;
+
+        WHEN FW_EXTENDING_4 =>
+            next_state <= FULL_EXTEND;            
                 
                 
         -- CLOSING STATES
@@ -73,11 +79,14 @@ BEGIN
                 
         WHEN BW_EXTENDING_3 =>
             next_state <= BW_EXTENDING_2;
-                
+         
+        WHEN BW_EXTENDING_4 =>
+            next_state <= BW_EXTENDING_3;
+
         -- FULLY EXTENDED STATE
         WHEN FULL_EXTEND =>        
-            IF ((EXTEND_EN='1') AND (EXTEND_BTN='0')) THEN 
-               next_state <= BW_EXTENDING_3;
+            IF ((EXTEND_EN='1') AND (EXTEND_BTN='1')) THEN 
+               next_state <= BW_EXTENDING_4;
             ELSE
                 next_state <= FULL_EXTEND;
             END IF;
@@ -122,6 +131,12 @@ BEGIN
                 GRAPPLE_EN <= '0';
                 CLOCK_ENBL <= '1';
                 LEFT_RIGHT <= '1';
+            
+            WHEN FW_EXTENDING_4 =>
+                EXTEND_OUT <= '1';
+                GRAPPLE_EN <= '0';
+                CLOCK_ENBL <= '1';
+                LEFT_RIGHT <= '1';           
       
             WHEN BW_EXTENDING_1 =>
                 EXTEND_OUT <= '1';
@@ -140,6 +155,12 @@ BEGIN
                 GRAPPLE_EN <= '0';
                 CLOCK_ENBL <= '1';
                 LEFT_RIGHT <= '0';
+
+            WHEN BW_EXTENDING_4 =>
+                EXTEND_OUT <= '1';
+                GRAPPLE_EN <= '0';
+                CLOCK_ENBL <= '1';
+                LEFT_RIGHT <= '0';                
       
             WHEN FULL_EXTEND =>
                 EXTEND_OUT <= '1';
