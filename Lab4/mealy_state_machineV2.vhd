@@ -185,7 +185,7 @@ BEGIN
             WHEN others =>
             
                 -- If we release BOTH drive btns -> idle
-                IF(x_drive_en ='0' and y_drive_en ='0') THEN
+                IF(x_drive_en ='0' and y_drive_en ='0' and extender_out='0') THEN
                     next_state <= idle;
                     
                 -- if btn(s) are held -> error    
@@ -204,8 +204,12 @@ Decoder_Section: PROCESS (X_EQ, X_GT, X_LT, Y_EQ, Y_GT, Y_LT, current_state)
 
 BEGIN
      CASE current_state IS
-         WHEN idle =>        
-                extender_en <= '1';
+         WHEN idle =>
+					 IF(X_EQ='1' and Y_EQ='1') THEN
+						extender_en <= '1';
+					 ELSE
+						extender_en <='0';
+					 END IF;
                 x_move_en   <= '0';
                 y_move_en   <= '0';
                 x_clk_en    <= '0';
@@ -281,7 +285,7 @@ BEGIN
                 
             -- when in Error state
          WHEN others =>        
-                extender_en <= '0';
+                extender_en <= '1';
                 x_move_en   <= '0';
                 y_move_en   <= '0';
                 x_clk_en    <= '0';
